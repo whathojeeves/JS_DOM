@@ -1,0 +1,250 @@
+<html> 
+<script type="text/javascript"> 
+ 
+function loadXML(url){ 
+ 
+	var xDoc; 
+	var xmlh; 
+ 
+	if(window.XMLHttpRequest) 
+	{ 
+		xmlh = new XMLHttpRequest(); 
+	}
+ 
+	xmlh.open("GET", url, false); 
+
+	xmlh.send(); 
+	xDoc = xmlh.responseXML; 
+	if(xmlh.status == 404)
+	{
+		alert("File not found");
+		return null;
+	}
+	return xDoc; 
+} 
+ 
+function doXmlParse(){ 
+ 
+	var html = ""; 
+	var thereIsFood = 0;
+	var thereIsDV = 0;
+	var hasAttr = 0;
+	var imgUrl = "http://www-scf.usc.edu/~csci571/2013Spring/hw4/";
+	var xmld = loadXML(document.getElementById('xml_url').value); 
+	
+	if(xmld == null)
+		return;
+
+	if(xmld.documentElement.nodeName == "parsererror")
+	{
+		alert("XML parsing error");
+		return;
+	}
+
+	if(xmld.getElementsByTagName("nutrition").length == 0)
+	{
+		alert("XML parsing error");
+		return;
+	}
+
+ 	var entered = 0;
+ 	var enteredFoodV = 0;
+
+ 	html+= ('<table border="1">');
+
+	var nutrition = xmld.documentElement; 
+	for(var i=0; i<nutrition.childNodes.length; i++) 
+	{ 
+		var childNutri = nutrition.childNodes[i]; 
+		if(childNutri.nodeType==1) 
+		{ 
+			if(childNutri.nodeName == "daily-values")
+			{
+				thereIsDV = 1;
+				html+= ('<tr><th colspan="16"><center>Daily Values</center></th></tr>');
+				html+= ('<tr>');
+				var nutriValues = childNutri.childNodes; 
+				for(var j=0; j<nutriValues.length; j++) 
+				{ 
+					if(nutriValues[j].nodeType == 1) 
+					{ 
+						html+=('<th>'+nutriValues[j].nodeName+'</th>'); 
+						if(nutriValues[j].childNodes[0]) 
+						{ 
+							if(nutriValues[j].childNodes[0].nodeValue) 
+							{ 
+								html+=('<th>');
+								html+=(nutriValues[j].childNodes[0].nodeValue);
+								if(nutriValues[j].hasAttribute("units"))
+								{
+									html+= (nutriValues[j].getAttribute("units"));
+								}
+								html+= ('</th>');
+							}
+							else
+							{
+								html+=('<th> NA </th>');
+							} 
+						} 
+					} 
+				} 
+				html+=('</tr>'); 
+			}
+
+			if(childNutri.nodeName == "food")
+			{
+				thereIsFood = 1;
+				var nutriValues = childNutri.childNodes; 
+				if(entered == 0)
+				{
+					html+= ('<tr><th colspan="16"><center>Nutrition Categories</center></th></tr>');
+					html+= ('<tr>');
+					for(var j=0; j<nutriValues.length; j++) 
+					{	
+						/* run whole sub for inside entered check */
+						if(nutriValues[j].nodeType == 1) 
+						{
+							if(nutriValues[j].nodeName == "vitamins" || nutriValues[j].nodeName == "minerals")
+							{
+								for(var z=0; z< nutriValues[j].childNodes.length; z++)
+								{
+									if(nutriValues[j].childNodes[z].nodeType == 1)
+										html+= ('<th>'+nutriValues[j].nodeName+'-'+nutriValues[j].childNodes[z].nodeName + '</th>');
+								}
+								
+							}
+							else
+								html+=('<th>'+nutriValues[j].nodeName+'</th>');
+						}
+					}
+					html+= ('</tr>');
+					entered =1
+					i--;
+				}
+					
+				else
+				{
+					if(enteredFoodV == 0)
+					{
+						html+= ('<tr><th colspan="16"><center>Food</center></th></tr>');
+						enteredFoodV = 1;
+					}
+					html+= ('<tr>');
+					for(var j=0; j<nutriValues.length; j++) 
+					{
+						hasAttr = 0;	 
+						if(nutriValues[j].nodeType == 1) 
+						{
+							if(nutriValues[j].hasAttributes() && !nutriValues[j].getAttribute("units"))
+							{
+								hasAttr = 1;
+								attrList = nutriValues[j].attributes;
+									html+= ('<td>');
+									for(z=0; z<attrList.length; z++)
+									{
+										if(attrList.item(z).value)
+										{										
+											html+= (attrList.item(z).value + ' ' +attrList.item(z).name);
+											if(z == 0)
+												html+= ', ';
+										}
+										else
+										{
+											html+= (' NA ');
+										}
+										
+									}
+									html+= ('</td>');
+							}
+							if(nutriValues[j].childNodes[0]) 
+							{ 
+								if(nutriValues[j].childNodes[0].nodeValue) 
+								{ 
+									html+=('<td>');
+									if(nutriValues[j].nodeName == "photo")
+									{
+										if(nutriValues[j].childNodes[0].nodeValue)
+										{
+											html+= ('<img src='+'"'+imgUrl+nutriValues[j].childNodes[0].nodeValue+'"'+'/>');
+										}
+										else
+										{
+											html+= (' NA ');	
+										}
+									}
+									else if(nutriValues[j].nodeName == "vitamins" || nutriValues[j].nodeName == "minerals")
+									{
+										for(var z=0; z< nutriValues[j].childNodes.length; z++)
+										{
+											if(nutriValues[j].childNodes[z].childNodes[0])
+											{
+												if(nutriValues[j].childNodes[z].nodeName != "a" && nutriValues[j].childNodes[z].nodeName != "ca")
+												{
+													html+= ('<td>');
+												}
+												if(nutriValues[j].childNodes[z].childNodes[0].nodeValue)
+												{
+													html+= (nutriValues[j].childNodes[z].childNodes[0].nodeValue + '</td>');
+												}
+												else
+												{
+													html+= ('NA </td>');
+												}
+											}
+										}
+									}
+									else
+									{
+										html+=(nutriValues[j].childNodes[0].nodeValue);
+										if(nutriValues[j].hasAttribute("units"))
+										{
+											html+= (nutriValues[j].getAttribute("units"));
+										}
+									}
+								}
+								else
+								{
+									if(hasAttr == 0)
+									{
+										html+= ('<td> NA </td>');	
+									}
+								}
+								html+= ('</td>');
+							}
+							else
+								{
+									if(hasAttr == 0)
+									{
+										html+= ('<td> NA </td>');	
+									}
+								}
+
+						}
+					}
+					html+= ('</tr>');
+				}
+			}
+		}
+	}
+	html+= ('</tr></table>');
+	if(thereIsFood==0 || thereIsDV == 0)
+	{
+		alert("XML parsing error 3");
+	}
+	var newWin = window.open('','','width=800,height=600,scrollbars=1');
+	newWin.document.write(html);
+ } 
+</script> 
+<body> 
+	<form> 
+		<center> 
+			Enter URL for Nutrition XML file <br/> 
+			<input type="text" name="xmlUrl" id="xml_url"><br/> 
+			<input type="submit" name="bSubmit" onClick="doXmlParse()"> 
+		</center> 
+	</form> 
+	<div id="xmlOut"> 
+	</div>
+	<noscript> 
+</body> 
+</html>
